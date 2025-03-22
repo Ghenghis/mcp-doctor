@@ -32,5 +32,25 @@ jobs:
     - name: Build
       run: npm run build
     
-    - name: Run tests
-      run: npm test
+    - name: Run tests with coverage
+      run: npm test -- --coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '18.x'
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        file: ./coverage/lcov.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: Check test coverage
+      if: matrix.os == 'ubuntu-latest' && matrix.node-version == '18.x'
+      run: |
+        COVERAGE=$(cat ./coverage/coverage-summary.json | jq -r '.total.lines.pct')
+        echo "Current test coverage: $COVERAGE%"
+        if (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          echo "Test coverage is below 80%"
+          exit 1
+        fi
