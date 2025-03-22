@@ -93,10 +93,10 @@
 - [x] Build settings interface
 
 ## Installation System (Week 6)
-- [ ] Create one-click installer
-  - [ ] Windows installer
-  - [ ] macOS installer
-  - [ ] Linux package
+- [x] Create one-click installer
+  - [x] Windows installer
+  - [x] macOS installer
+  - [x] Linux package
 - [x] Implement auto-detection
   - [x] MCP client detection
   - [x] Server configuration detection
@@ -104,7 +104,7 @@
 - [x] Develop permission handling
   - [x] Request necessary permissions
   - [x] Secure storage
-- [ ] Build auto-update system
+- [x] Build auto-update system
 
 ## Testing Framework (Week 7)
 - [ ] Develop unit testing
