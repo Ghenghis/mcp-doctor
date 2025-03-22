@@ -12,6 +12,11 @@ import { UIService } from '../services/UIService';
 import { AIService } from '../services/AIService';
 import { AILogAnalyzerService } from '../services/AILogAnalyzerService';
 import { AutoUpdateService } from '../services/AutoUpdateService';
+import { ManagementService } from '../services/management/ManagementService';
+import { SystemService } from '../services/system/SystemService';
+import { LogService } from '../services/logging/LogService';
+import { ConfigService } from '../services/config/ConfigService';
+import { DiagnosticService } from '../services/diagnostic/DiagnosticService';
 import { HealthLevel } from '../types';
 
 /**
@@ -46,11 +51,36 @@ export class AppManager {
   private aiLogAnalyzerService: AILogAnalyzerService | null = null;
   private autoUpdateService: AutoUpdateService | null = null;
   
+  // Service wrappers for UI
+  private systemService: SystemService;
+  private logService: LogService;
+  private configService: ConfigService;
+  private diagnosticService: DiagnosticService;
+  private managementService: ManagementService;
+  
   constructor(options: AppManagerOptions) {
     this.systemDetector = options.systemDetector;
     this.logAnalyzer = options.logAnalyzer;
     this.configManager = options.configManager;
     this.backupManager = options.backupManager;
+    
+    // Initialize service wrappers
+    this.systemService = new SystemService({
+      systemDetector: this.systemDetector
+    });
+    
+    this.logService = new LogService({
+      logAnalyzer: this.logAnalyzer
+    });
+    
+    this.configService = new ConfigService({
+      configManager: this.configManager
+    });
+    
+    this.diagnosticService = new DiagnosticService({
+      systemDetector: this.systemDetector,
+      logAnalyzer: this.logAnalyzer
+    });
     
     // Initialize AI service if provided
     if (options.aiService) {
@@ -70,6 +100,13 @@ export class AppManager {
       this.autoUpdateService = options.autoUpdateService;
       this.logger.info('Auto-update service initialized');
     }
+    
+    // Initialize management service
+    this.managementService = new ManagementService(
+      this.logService,
+      this.configService,
+      this.systemService
+    );
     
     // Initialize services
     this.monitorService = new MonitorService({
@@ -105,6 +142,10 @@ export class AppManager {
     
     // Start UI service
     await this.uiService.start();
+    
+    // Initialize management service
+    await this.managementService.loadProfiles();
+    await this.managementService.detectServers();
     
     // Start auto-update service
     if (this.autoUpdateService) {
@@ -177,7 +218,8 @@ export class AppManager {
       { label: 'Open Dashboard', click: () => this.openDashboard() },
       { label: 'Check Status', click: () => this.checkStatus() },
       { type: 'separator' },
-      { label: 'Auto-Repair All', click: () => this.autoRepairAll() }
+      { label: 'Auto-Repair All', click: () => this.autoRepairAll() },
+      { label: 'Manage Servers', click: () => this.openServerManagement() }
     ];
     
     // Add AI-powered repair if available
@@ -252,6 +294,13 @@ export class AppManager {
    */
   private openDashboard(): void {
     this.uiService.openMainWindow();
+  }
+  
+  /**
+   * Open the server management page
+   */
+  private openServerManagement(): void {
+    this.uiService.openServerManagementPage();
   }
   
   /**
@@ -416,6 +465,11 @@ export class AppManager {
             this.logger.warn('Self-test: AI log analysis failed', error);
           }
         }
+
+        // Test management service
+        this.logger.info('Self-test: Testing management service');
+        const profiles = this.managementService.getProfiles();
+        this.logger.info(`Self-test: Management service has ${profiles.length} profiles`);
       }
       
       // Test auto-update service if available
@@ -456,5 +510,82 @@ export class AppManager {
     await fs.ensureDir(backupsDir);
     
     this.logger.info('Application initialized');
+  }
+
+  /**
+   * Get the system service
+   */
+  getSystemService(): SystemService {
+    return this.systemService;
+  }
+
+  /**
+   * Get the log service
+   */
+  getLogService(): LogService {
+    return this.logService;
+  }
+
+  /**
+   * Get the config service
+   */
+  getConfigService(): ConfigService {
+    return this.configService;
+  }
+
+  /**
+   * Get the diagnostic service
+   */
+  getDiagnosticService(): DiagnosticService {
+    return this.diagnosticService;
+  }
+
+  /**
+   * Get the repair service
+   */
+  getRepairService(): RepairService {
+    return this.repairService;
+  }
+
+  /**
+   * Get the AI service
+   */
+  getAIService(): AIService | null {
+    return this.aiService;
+  }
+
+  /**
+   * Get the management service
+   */
+  getManagementService(): ManagementService {
+    return this.managementService;
+  }
+
+  /**
+   * Show a loading indicator in the UI
+   */
+  showLoading(title: string, message: string): void {
+    this.uiService.showLoading(title, message);
+  }
+
+  /**
+   * Hide the loading indicator in the UI
+   */
+  hideLoading(): void {
+    this.uiService.hideLoading();
+  }
+
+  /**
+   * Show a notification in the UI
+   */
+  showNotification(title: string, message: string): void {
+    this.uiService.showNotification(title, message);
+  }
+
+  /**
+   * Show an error notification in the UI
+   */
+  showError(title: string, error: any): void {
+    this.uiService.showErrorNotification(title, error);
   }
 }
