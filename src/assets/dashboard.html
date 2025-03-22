@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MCP Doctor Dashboard</title>
+  <style>
+    :root {
+      --color-bg: #f8f9fa;
+      --color-text: #212529;
+      --color-primary: #1890ff;
+      --color-secondary: #6c757d;
+      --color-success: #52c41a;
+      --color-warning: #faad14;
+      --color-danger: #f5222d;
+      --color-critical: #722ed1;
+      --border-radius: 4px;
+      --box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+      margin: 0;
+      padding: 0;
+    }
+    
+    header {
+      background-color: var(--color-primary);
+      color: white;
+      padding: 1rem;
+      box-shadow: var(--box-shadow);
+    }
+    
+    h1 {
+      margin: 0;
+      font-size: 1.5rem;
+    }
+    
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    .section {
+      background-color: white;
+      border-radius: var(--border-radius);
+      box-shadow: var(--box-shadow);
+      padding: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .section-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #eee;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+    
+    .section-title h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+    
+    .status {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: var(--border-radius);
+      margin-bottom: 0.5rem;
+    }
+    
+    .status-icon {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    
+    .status-healthy .status-icon {
+      background-color: var(--color-success);
+    }
+    
+    .status-minor .status-icon {
+      background-color: var(--color-warning);
+    }
+    
+    .status-major .status-icon {
+      background-color: var(--color-danger);
+    }
+    
+    .status-critical .status-icon {
+      background-color: var(--color-critical);
+    }
+    
+    .status-name {
+      flex-grow: 1;
+    }
+    
+    .status-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .btn {
+      border: none;
+      border-radius: var(--border-radius);
+      padding: 0.25rem 0.5rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    
+    .btn-primary {
+      background-color: var(--color-primary);
+      color: white;
+    }
+    
+    .btn-secondary {
+      background-color: var(--color-secondary);
+      color: white;
+    }
+    
+    .btn-success {
+      background-color: var(--color-success);
+      color: white;
+    }
+    
+    .footer {
+      text-align: center;
+      padding: 1rem;
+      font-size: 0.8rem;
+      color: var(--color-secondary);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>MCP Doctor Dashboard</h1>
+  </header>
+  
+  <main>
+    <div class="section">
+      <div class="section-title">
+        <h2>System Status</h2>
+        <button class="btn btn-primary" id="refresh-status">Refresh</button>
+      </div>
+      
+      <div class="status status-healthy">
+        <div class="status-icon"></div>
+        <div class="status-name">Overall System</div>
+        <div class="status-value">Healthy</div>
+        <div class="status-actions">
+          <button class="btn btn-success" id="auto-repair-all">Auto-Repair All</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">
+        <h2>MCP Clients</h2>
+      </div>
+      
+      <div class="status status-healthy">
+        <div class="status-icon"></div>
+        <div class="status-name">Claude Desktop</div>
+        <div class="status-value">Healthy</div>
+        <div class="status-actions">
+          <button class="btn btn-primary">Details</button>
+          <button class="btn btn-success">Repair</button>
+        </div>
+      </div>
+      
+      <div class="status status-minor">
+        <div class="status-icon"></div>
+        <div class="status-name">Windsurf Editor</div>
+        <div class="status-value">Minor Issues</div>
+        <div class="status-actions">
+          <button class="btn btn-primary">Details</button>
+          <button class="btn btn-success">Repair</button>
+        </div>
+      </div>
+      
+      <div class="status status-major">
+        <div class="status-icon"></div>
+        <div class="status-name">Cursor</div>
+        <div class="status-value">Major Issues</div>
+        <div class="status-actions">
+          <button class="btn btn-primary">Details</button>
+          <button class="btn btn-success">Repair</button>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">
+        <h2>Recent Activity</h2>
+      </div>
+      
+      <div class="activity">
+        <div>No recent activity</div>
+      </div>
+    </div>
+  </main>
+  
+  <footer class="footer">
+    <div>MCP Doctor v0.1.0 | Copyright © 2025</div>
+  </footer>
+  
+  <script>
+    // Placeholder for the dashboard JavaScript
+    // This will be replaced with actual functionality in a separate file
+    document.addEventListener('DOMContentLoaded', function() {
+      // Get elements
+      const refreshButton = document.getElementById('refresh-status');
+      const autoRepairButton = document.getElementById('auto-repair-all');
+      
+      // Add event listeners
+      refreshButton.addEventListener('click', function() {
+        alert('Refreshing status...');
+        // In the real implementation, this would call electron API
+      });
+      
+      autoRepairButton.addEventListener('click', function() {
+        alert('Auto-repairing all issues...');
+        // In the real implementation, this would call electron API
+      });
+    });
+  </script>
+</body>
+</html>
