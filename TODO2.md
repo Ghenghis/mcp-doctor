@@ -1,18 +1,18 @@
 # MCP Doctor 2.0 - Feature Enhancement Plan
 
 ## Unified Management Interface
-- [ ] Design centralized dashboard for multiple MCP servers
-  - [ ] Create server selection dropdown/sidebar
-  - [ ] Implement unified status overview
-  - [ ] Design configuration comparison view
-- [ ] Develop configuration switcher
-  - [ ] Build profile management system
-  - [ ] Create one-click switching mechanism
-  - [ ] Implement configuration backup/restore
-- [ ] Create shared settings management
-  - [ ] Identify common settings across servers
-  - [ ] Develop propagation mechanism for shared changes
-  - [ ] Build conflict resolution system
+- [x] Design centralized dashboard for multiple MCP servers
+  - [x] Create server selection dropdown/sidebar
+  - [x] Implement unified status overview
+  - [x] Design configuration comparison view
+- [x] Develop configuration switcher
+  - [x] Build profile management system
+  - [x] Create one-click switching mechanism
+  - [x] Implement configuration backup/restore
+- [x] Create shared settings management
+  - [x] Identify common settings across servers
+  - [x] Develop propagation mechanism for shared changes
+  - [x] Build conflict resolution system
 
 ## Automated Server Installation
 - [ ] Create detection system for available MCP servers
