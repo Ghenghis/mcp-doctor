@@ -130,10 +130,10 @@
   - [x] Architecture
   - [x] API reference
   - [x] Extension points
-- [ ] Build video tutorials
-  - [ ] Getting started
-  - [ ] Advanced usage
-- [ ] Prepare release notes
+- [x] Build video tutorials
+  - [x] Getting started
+  - [x] Advanced usage
+- [x] Prepare release notes
 
 ## Final Release (Week 9-10)
 - [ ] Conduct security audit
