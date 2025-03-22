@@ -1,6 +1,6 @@
 {
   "name": "mcp-doctor",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Automated repair system for Model Context Protocol (MCP) servers",
   "main": "dist/index.js",
   "scripts": {
@@ -10,6 +10,8 @@
     "lint": "eslint src --ext .ts",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "jest",
+    "test:unit": "jest --testPathPattern=src/tests/unit",
+    "test:integration": "jest --testPathPattern=src/tests/integration",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "postinstall": "electron-builder install-app-deps"
@@ -27,7 +29,8 @@
     "Windsurf",
     "Cursor",
     "repair",
-    "diagnostics"
+    "diagnostics",
+    "AI"
   ],
   "author": "Ghenghis",
   "license": "MIT",
