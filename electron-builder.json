@@ -1,39 +1,67 @@
 {
-  "appId": "com.mcp-doctor.app",
+  "appId": "com.mcpdoctor.app",
   "productName": "MCP Doctor",
+  "copyright": "Copyright © 2025 MCP Doctor",
+  "directories": {
+    "output": "dist_electron",
+    "buildResources": "build"
+  },
   "files": [
     "dist/**/*",
+    "assets/**/*",
     "package.json"
   ],
-  "directories": {
-    "output": "dist_electron"
-  },
   "mac": {
     "category": "public.app-category.developer-tools",
-    "darkModeSupport": true,
-    "icon": "assets/icons/mac/icon.icns",
     "target": [
       "dmg"
-    ]
+    ],
+    "icon": "assets/icons/mac/icon.icns"
   },
   "win": {
-    "icon": "assets/icons/win/icon.ico",
     "target": [
       "nsis"
-    ]
+    ],
+    "icon": "assets/icons/win/icon.ico"
   },
   "linux": {
-    "category": "Development",
-    "icon": "assets/icons/png",
     "target": [
       "AppImage",
       "deb",
       "rpm"
-    ]
+    ],
+    "category": "Development",
+    "icon": "assets/icons/png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "MCP Doctor"
+  },
+  "dmg": {
+    "contents": [
+      {
+        "x": 130,
+        "y": 220
+      },
+      {
+        "x": 410,
+        "y": 220,
+        "type": "link",
+        "path": "/Applications"
+      }
+    ],
+    "window": {
+      "width": 540,
+      "height": 380
+    }
   },
   "publish": {
     "provider": "github",
     "owner": "Ghenghis",
-    "repo": "mcp-doctor"
+    "repo": "mcp-doctor",
+    "private": false
   }
 }
