@@ -1,5 +1,6 @@
 import { app, Tray, Menu, BrowserWindow } from 'electron';
 import * as path from 'path';
+import * as fs from 'fs-extra';
 import { getLogger } from '../core/logging';
 import { SystemDetector } from '../core/diagnostics/SystemDetector';
 import { LogAnalyzer } from '../core/diagnostics/LogAnalyzer';
@@ -8,6 +9,8 @@ import { BackupManager } from '../core/backup/BackupManager';
 import { MonitorService } from '../services/MonitorService';
 import { RepairService } from '../services/RepairService';
 import { UIService } from '../services/UIService';
+import { AIService } from '../services/AIService';
+import { AILogAnalyzerService } from '../services/AILogAnalyzerService';
 import { HealthLevel } from '../types';
 
 /**
@@ -18,6 +21,7 @@ export interface AppManagerOptions {
   logAnalyzer: LogAnalyzer;
   configManager: ConfigManager;
   backupManager: BackupManager;
+  aiService?: AIService;
 }
 
 /**
@@ -36,12 +40,27 @@ export class AppManager {
   private logAnalyzer: LogAnalyzer;
   private configManager: ConfigManager;
   private backupManager: BackupManager;
+  private aiService: AIService | null = null;
+  private aiLogAnalyzerService: AILogAnalyzerService | null = null;
   
   constructor(options: AppManagerOptions) {
     this.systemDetector = options.systemDetector;
     this.logAnalyzer = options.logAnalyzer;
     this.configManager = options.configManager;
     this.backupManager = options.backupManager;
+    
+    // Initialize AI service if provided
+    if (options.aiService) {
+      this.aiService = options.aiService;
+      
+      // Initialize AI log analyzer service
+      this.aiLogAnalyzerService = new AILogAnalyzerService({
+        aiService: this.aiService,
+        logAnalyzer: this.logAnalyzer,
+      });
+      
+      this.logger.info('AI services initialized');
+    }
     
     // Initialize services
     this.monitorService = new MonitorService({
@@ -54,6 +73,7 @@ export class AppManager {
       systemDetector: this.systemDetector,
       configManager: this.configManager,
       backupManager: this.backupManager,
+      aiLogAnalyzer: this.aiLogAnalyzerService || undefined,
     });
     
     this.uiService = new UIService();
@@ -123,12 +143,15 @@ export class AppManager {
     this.tray = new Tray(iconPath);
     this.tray.setToolTip('MCP Doctor');
     
-    // Create tray menu
+    // Create tray menu with AI-powered option if available
     const contextMenu = Menu.buildFromTemplate([
       { label: 'Open Dashboard', click: () => this.openDashboard() },
       { label: 'Check Status', click: () => this.checkStatus() },
       { type: 'separator' },
       { label: 'Auto-Repair All', click: () => this.autoRepairAll() },
+      ...(this.aiService ? [
+        { label: 'AI-Powered Repair', click: () => this.aiRepairAll() },
+      ] : []),
       { type: 'separator' },
       { label: 'Quit', click: () => this.quit() },
     ]);
@@ -231,6 +254,52 @@ export class AppManager {
   }
   
   /**
+   * AI-powered repair for all clients
+   */
+  private async aiRepairAll(): Promise<void> {
+    try {
+      // Check if AI service is available
+      if (!this.aiService || !this.aiLogAnalyzerService) {
+        this.uiService.showErrorNotification(
+          'AI Service Not Available',
+          'AI-powered repair requires Claude API integration'
+        );
+        return;
+      }
+      
+      // Get system detection
+      const detection = await this.systemDetector.detect();
+      
+      // Show status notification
+      this.uiService.showNotification(
+        'AI-Powered Repair',
+        'Analyzing system with Claude AI...'
+      );
+      
+      // AI-powered repair for each client
+      for (const client of detection.mcpClients) {
+        // Create AI repair plan
+        const plan = await this.repairService.createAIRepairPlan(client);
+        
+        // Apply repair plan
+        await this.repairService.applyRepairPlan(client, plan);
+      }
+      
+      // Show success notification
+      this.uiService.showNotification(
+        'AI-Powered Repair Complete',
+        'Claude AI has analyzed and fixed issues'
+      );
+      
+      // Check status again
+      await this.checkStatus();
+    } catch (error) {
+      this.logger.error('Failed to perform AI-powered repair', error);
+      this.uiService.showErrorNotification('Failed to perform AI-powered repair', error);
+    }
+  }
+  
+  /**
    * Quit the application
    */
   private quit(): void {
@@ -268,6 +337,18 @@ export class AppManager {
         // Test log analysis
         const logAnalysis = await this.logAnalyzer.analyzeClientLogs(client);
         this.logger.info(`Self-test: Log analysis found ${logAnalysis.errors.length} errors and ${logAnalysis.warnings.length} warnings`);
+        
+        // Test AI log analysis if available
+        if (this.aiLogAnalyzerService) {
+          this.logger.info('Self-test: Testing AI log analysis');
+          
+          try {
+            const aiAnalysis = await this.aiLogAnalyzerService.analyzeClientLogs(client);
+            this.logger.info(`Self-test: AI log analysis found ${aiAnalysis.aiSuggestedFixes.length} suggested fixes`);
+          } catch (error) {
+            this.logger.warn('Self-test: AI log analysis failed', error);
+          }
+        }
       }
       
       this.logger.info('Self-test completed successfully');
