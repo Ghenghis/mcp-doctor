@@ -11,6 +11,7 @@ import { RepairService } from '../services/RepairService';
 import { UIService } from '../services/UIService';
 import { AIService } from '../services/AIService';
 import { AILogAnalyzerService } from '../services/AILogAnalyzerService';
+import { AutoUpdateService } from '../services/AutoUpdateService';
 import { HealthLevel } from '../types';
 
 /**
@@ -22,6 +23,7 @@ export interface AppManagerOptions {
   configManager: ConfigManager;
   backupManager: BackupManager;
   aiService?: AIService;
+  autoUpdateService?: AutoUpdateService;
 }
 
 /**
@@ -42,6 +44,7 @@ export class AppManager {
   private backupManager: BackupManager;
   private aiService: AIService | null = null;
   private aiLogAnalyzerService: AILogAnalyzerService | null = null;
+  private autoUpdateService: AutoUpdateService | null = null;
   
   constructor(options: AppManagerOptions) {
     this.systemDetector = options.systemDetector;
@@ -60,6 +63,12 @@ export class AppManager {
       });
       
       this.logger.info('AI services initialized');
+    }
+    
+    // Initialize auto-update service if provided
+    if (options.autoUpdateService) {
+      this.autoUpdateService = options.autoUpdateService;
+      this.logger.info('Auto-update service initialized');
     }
     
     // Initialize services
@@ -96,6 +105,26 @@ export class AppManager {
     
     // Start UI service
     await this.uiService.start();
+    
+    // Start auto-update service
+    if (this.autoUpdateService) {
+      await this.autoUpdateService.start();
+      
+      // Listen for update events
+      this.autoUpdateService.on('update-available', (info) => {
+        this.uiService.showNotification(
+          'Update Available',
+          `Version ${info.version} is available.`
+        );
+      });
+      
+      this.autoUpdateService.on('update-downloaded', (info) => {
+        this.uiService.showNotification(
+          'Update Ready',
+          `Version ${info.version} is ready to install.`
+        );
+      });
+    }
     
     // Listen for status changes
     this.monitorService.on('status', (status) => {
@@ -143,19 +172,31 @@ export class AppManager {
     this.tray = new Tray(iconPath);
     this.tray.setToolTip('MCP Doctor');
     
-    // Create tray menu with AI-powered option if available
-    const contextMenu = Menu.buildFromTemplate([
+    // Create menu items based on available services
+    const menuItems = [
       { label: 'Open Dashboard', click: () => this.openDashboard() },
       { label: 'Check Status', click: () => this.checkStatus() },
       { type: 'separator' },
-      { label: 'Auto-Repair All', click: () => this.autoRepairAll() },
-      ...(this.aiService ? [
-        { label: 'AI-Powered Repair', click: () => this.aiRepairAll() },
-      ] : []),
-      { type: 'separator' },
-      { label: 'Quit', click: () => this.quit() },
-    ]);
+      { label: 'Auto-Repair All', click: () => this.autoRepairAll() }
+    ];
     
+    // Add AI-powered repair if available
+    if (this.aiService) {
+      menuItems.push({ label: 'AI-Powered Repair', click: () => this.aiRepairAll() });
+    }
+    
+    // Add check for updates if auto-update is available
+    if (this.autoUpdateService) {
+      menuItems.push({ type: 'separator' });
+      menuItems.push({ label: 'Check for Updates', click: () => this.checkForUpdates() });
+    }
+    
+    // Add quit option
+    menuItems.push({ type: 'separator' });
+    menuItems.push({ label: 'Quit', click: () => this.quit() });
+    
+    // Create context menu
+    const contextMenu = Menu.buildFromTemplate(menuItems);
     this.tray.setContextMenu(contextMenu);
     
     // Handle tray click
@@ -300,6 +341,32 @@ export class AppManager {
   }
   
   /**
+   * Check for updates
+   */
+  private async checkForUpdates(): Promise<void> {
+    try {
+      if (this.autoUpdateService) {
+        // Show notification
+        this.uiService.showNotification(
+          'Checking for Updates',
+          'Checking for new versions...'
+        );
+        
+        // Check for updates
+        await this.autoUpdateService.checkForUpdates(false);
+      } else {
+        this.uiService.showErrorNotification(
+          'Update Service Not Available',
+          'Auto-update service is not initialized'
+        );
+      }
+    } catch (error) {
+      this.logger.error('Failed to check for updates', error);
+      this.uiService.showErrorNotification('Failed to check for updates', error);
+    }
+  }
+  
+  /**
    * Quit the application
    */
   private quit(): void {
@@ -349,6 +416,13 @@ export class AppManager {
             this.logger.warn('Self-test: AI log analysis failed', error);
           }
         }
+      }
+      
+      // Test auto-update service if available
+      if (this.autoUpdateService) {
+        this.logger.info('Self-test: Testing auto-update service');
+        // Just check that the service is initialized, don't actually check for updates
+        this.logger.info('Self-test: Auto-update service is available');
       }
       
       this.logger.info('Self-test completed successfully');
