@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: MCP Doctor Documentation
+    url: https://github.com/Ghenghis/mcp-doctor/blob/main/README.md
+    about: Check our documentation for answers to common questions
+  - name: Community Discussions
+    url: https://github.com/Ghenghis/mcp-doctor/discussions
+    about: Ask questions and discuss with other community members
