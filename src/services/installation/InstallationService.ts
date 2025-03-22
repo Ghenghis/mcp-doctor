@@ -1,465 +1,586 @@
-import { EventEmitter } from 'events';
-import * as childProcess from 'child_process';
-import * as util from 'util';
-import * as path from 'path';
+import { exec } from 'child_process';
 import * as fs from 'fs-extra';
+import * as path from 'path';
+import * as os from 'os';
+import { EventEmitter } from 'events';
 import { LogService } from '../logging/LogService';
-import { RepositoryScanner, RepositoryInfo } from './RepositoryScanner';
-import { CompatibilityChecker, CompatibilityResult, SystemInfo } from './CompatibilityChecker';
-import { RecommendationEngine, UserPreferences, ServerRecommendation } from './RecommendationEngine';
-
-// Convert child_process.exec to Promise
-const execAsync = util.promisify(childProcess.exec);
+import { SystemService } from '../system/SystemService';
+import { RepositoryInfo, ServerDetectionService } from './ServerDetectionService';
 
 /**
- * Installation status interface
+ * Interface for installation progress
  */
-export interface InstallationStatus {
-  stage: 'scanning' | 'analyzing' | 'installing' | 'configuring' | 'completed' | 'failed';
-  progress: number; // 0-100
+export interface InstallationProgress {
+  stage: 'preparation' | 'dependencies' | 'download' | 'install' | 'configure' | 'verify' | 'complete' | 'error';
+  progress: number;
   message: string;
-  repository?: RepositoryInfo;
-  error?: any;
+  details?: string;
+  error?: Error;
 }
 
 /**
- * Installation result interface
+ * Interface for installation result
  */
 export interface InstallationResult {
   success: boolean;
-  repository: RepositoryInfo;
-  installPath: string;
+  server: RepositoryInfo;
+  installedPath: string;
   configPath: string;
-  error?: any;
-  logs: string[];
+  executablePath: string;
+  error?: Error;
+  warnings: string[];
 }
 
 /**
- * Options for installation service
+ * Interface for installation options
  */
-export interface InstallationServiceOptions {
-  logService: LogService;
-  installDir?: string;
-  githubToken?: string;
-  npmRegistry?: string;
+export interface InstallationOptions {
+  installPath?: string;
+  configOptions?: Record<string, any>;
+  customName?: string;
+  autoStart?: boolean;
+  createShortcut?: boolean;
+  addToPath?: boolean;
 }
 
 /**
  * Service for installing MCP servers
  */
 export class InstallationService extends EventEmitter {
-  private logService: LogService;
-  private repositoryScanner: RepositoryScanner;
-  private compatibilityChecker: CompatibilityChecker;
-  private recommendationEngine: RecommendationEngine;
-  private installDir: string;
+  private installationPath: string;
   
-  constructor(options: InstallationServiceOptions) {
+  constructor(
+    private logService: LogService,
+    private systemService: SystemService,
+    private serverDetectionService: ServerDetectionService
+  ) {
     super();
-    
-    this.logService = options.logService;
-    
-    // Initialize installDir
-    this.installDir = options.installDir || path.join(process.env.HOME || process.env.USERPROFILE || '.', '.mcp-doctor', 'servers');
-    
-    // Initialize component services
-    this.repositoryScanner = new RepositoryScanner({
-      logService: this.logService,
-      githubToken: options.githubToken,
-      npmRegistry: options.npmRegistry
-    });
-    
-    this.compatibilityChecker = new CompatibilityChecker({
-      logService: this.logService
-    });
-    
-    this.recommendationEngine = new RecommendationEngine({
-      logService: this.logService
-    });
-    
-    this.logService.info('InstallationService', 'Installation service initialized');
-  }
-  
-  /**
-   * Scan for available servers
-   */
-  async scanAvailableServers(): Promise<RepositoryInfo[]> {
-    this.logService.info('InstallationService', 'Scanning for available servers');
-    
-    try {
-      // Update status
-      this.emitStatus({
-        stage: 'scanning',
-        progress: 0,
-        message: 'Searching for available MCP servers...'
-      });
-      
-      // Scan for servers
-      const servers = await this.repositoryScanner.scanForServers();
-      
-      this.emitStatus({
-        stage: 'scanning',
-        progress: 100,
-        message: `Found ${servers.length} MCP servers`
-      });
-      
-      return servers;
-    } catch (error) {
-      this.logService.error('InstallationService', `Error scanning for servers: ${error.message}`);
-      
-      this.emitStatus({
-        stage: 'failed',
-        progress: 0,
-        message: 'Failed to scan for servers',
-        error
-      });
-      
-      throw error;
-    }
-  }
-  
-  /**
-   * Find compatible servers
-   */
-  async findCompatibleServers(): Promise<CompatibilityResult[]> {
-    this.logService.info('InstallationService', 'Finding compatible servers');
-    
-    try {
-      // Update status
-      this.emitStatus({
-        stage: 'analyzing',
-        progress: 0,
-        message: 'Analyzing system compatibility...'
-      });
-      
-      // Scan for servers
-      const servers = await this.scanAvailableServers();
-      
-      // Update status
-      this.emitStatus({
-        stage: 'analyzing',
-        progress: 50,
-        message: 'Checking server compatibility...'
-      });
-      
-      // Check compatibility for all servers
-      const compatibilityResults = await this.compatibilityChecker.batchCheckCompatibility(servers);
-      
-      // Update status
-      this.emitStatus({
-        stage: 'analyzing',
-        progress: 100,
-        message: `Found ${compatibilityResults.filter(r => r.compatible).length} compatible servers`
-      });
-      
-      return compatibilityResults;
-    } catch (error) {
-      this.logService.error('InstallationService', `Error finding compatible servers: ${error.message}`);
-      
-      this.emitStatus({
-        stage: 'failed',
-        progress: 0,
-        message: 'Failed to find compatible servers',
-        error
-      });
-      
-      throw error;
-    }
-  }
-  
-  /**
-   * Get server recommendations based on user preferences
-   * @param userPreferences User preferences for server recommendations
-   */
-  async getServerRecommendations(userPreferences?: UserPreferences): Promise<ServerRecommendation[]> {
-    this.logService.info('InstallationService', 'Getting server recommendations');
-    
-    try {
-      // Find compatible servers
-      const compatibilityResults = await this.findCompatibleServers();
-      
-      // Generate recommendations
-      const recommendations = this.recommendationEngine.recommendServers(
-        compatibilityResults,
-        userPreferences
-      );
-      
-      this.logService.info('InstallationService', `Generated ${recommendations.length} server recommendations`);
-      
-      return recommendations;
-    } catch (error) {
-      this.logService.error('InstallationService', `Error getting server recommendations: ${error.message}`);
-      throw error;
-    }
+    this.installationPath = path.join(os.homedir(), '.mcp-doctor', 'servers');
   }
   
   /**
    * Install an MCP server
-   * @param repository Repository to install
+   * @param server Repository to install
+   * @param options Installation options
    */
-  async installServer(repository: RepositoryInfo): Promise<InstallationResult> {
-    this.logService.info('InstallationService', `Installing MCP server: ${repository.name}`);
-    
-    // Logs for the installation process
-    const logs: string[] = [];
-    const addLog = (message: string) => {
-      this.logService.debug('InstallationService', message);
-      logs.push(message);
-    };
+  public async installServer(
+    server: RepositoryInfo,
+    options: InstallationOptions = {}
+  ): Promise<InstallationResult> {
+    this.logService.info('InstallationService', `Starting installation of ${server.name}`);
     
     try {
-      // Update status
-      this.emitStatus({
-        stage: 'installing',
+      // Create base result
+      const result: InstallationResult = {
+        success: false,
+        server,
+        installedPath: '',
+        configPath: '',
+        executablePath: '',
+        warnings: []
+      };
+      
+      // Determine installation path
+      const installPath = options.installPath || this.getDefaultInstallPath(server);
+      result.installedPath = installPath;
+      
+      // Emit preparation progress
+      this.emitProgress({
+        stage: 'preparation',
         progress: 0,
-        message: `Preparing to install ${repository.name}...`,
-        repository
+        message: 'Preparing installation environment'
       });
       
-      // Create install directory
-      const serverDir = path.join(this.installDir, repository.name);
-      await fs.ensureDir(serverDir);
+      // Create installation directory
+      await fs.ensureDir(installPath);
       
-      addLog(`Created installation directory: ${serverDir}`);
+      // Check for required dependencies
+      const compatibility = await this.serverDetectionService.checkCompatibility(server);
       
-      // Update status
-      this.emitStatus({
-        stage: 'installing',
-        progress: 10,
-        message: `Installing ${repository.name}...`,
-        repository
-      });
-      
-      // Install based on repository source
-      if (repository.installUrl.startsWith('npm:')) {
-        // Install from NPM
-        await this.installFromNpm(repository, serverDir);
-        addLog(`Installed ${repository.name} from NPM`);
-      } else if (repository.installUrl.includes('github.com')) {
-        // Install from GitHub
-        await this.installFromGitHub(repository, serverDir);
-        addLog(`Installed ${repository.name} from GitHub`);
-      } else {
-        throw new Error(`Unsupported installation source: ${repository.installUrl}`);
+      // Install missing dependencies
+      if (compatibility.installationRequirements.missingDependencies.length > 0) {
+        this.emitProgress({
+          stage: 'dependencies',
+          progress: 10,
+          message: 'Installing missing dependencies',
+          details: compatibility.installationRequirements.missingDependencies.join(', ')
+        });
+        
+        for (const dependency of compatibility.installationRequirements.missingDependencies) {
+          try {
+            await this.installDependency(dependency);
+          } catch (error) {
+            result.warnings.push(`Failed to install dependency: ${dependency}`);
+            this.logService.warn('InstallationService', `Failed to install dependency: ${dependency}`, error);
+          }
+        }
       }
       
-      // Update status
-      this.emitStatus({
-        stage: 'configuring',
+      // Download from GitHub
+      this.emitProgress({
+        stage: 'download',
+        progress: 30,
+        message: 'Downloading from GitHub',
+        details: `${server.owner}/${server.name}`
+      });
+      
+      // Clone repository
+      await this.executeCommand(`git clone https://github.com/${server.owner}/${server.name}.git .`, {
+        cwd: installPath
+      });
+      
+      // Install server
+      this.emitProgress({
+        stage: 'install',
+        progress: 50,
+        message: 'Installing server',
+        details: server.installCommand
+      });
+      
+      // Execute installation command
+      await this.executeCommand('npm install', {
+        cwd: installPath
+      });
+      
+      // Configure server
+      this.emitProgress({
+        stage: 'configure',
         progress: 70,
-        message: `Configuring ${repository.name}...`,
-        repository
+        message: 'Configuring server',
+        details: 'Setting up configuration files'
       });
       
-      // Create basic configuration
-      const configPath = await this.createDefaultConfig(repository, serverDir);
-      addLog(`Created default configuration at: ${configPath}`);
+      // Create configuration files
+      const configPath = path.join(installPath, 'config');
+      await fs.ensureDir(configPath);
       
-      // Update status
-      this.emitStatus({
-        stage: 'completed',
+      // Create default config
+      const defaultConfig = await this.createDefaultConfig(server, options.configOptions || {});
+      const configFilePath = path.join(configPath, 'config.json');
+      await fs.writeJSON(configFilePath, defaultConfig, { spaces: 2 });
+      
+      result.configPath = configFilePath;
+      
+      // Determine executable path
+      const executablePath = path.join(installPath, this.getExecutablePath(server));
+      result.executablePath = executablePath;
+      
+      // Verify installation
+      this.emitProgress({
+        stage: 'verify',
+        progress: 90,
+        message: 'Verifying installation',
+        details: 'Checking server functionality'
+      });
+      
+      // Verify command
+      const verifyResult = await this.verifyInstallation(server, installPath);
+      
+      if (!verifyResult.success) {
+        result.warnings.push(`Verification warning: ${verifyResult.message}`);
+      }
+      
+      // Post-installation tasks
+      if (options.createShortcut) {
+        await this.createShortcut(server, executablePath, options.customName);
+      }
+      
+      if (options.addToPath) {
+        await this.addToPath(executablePath);
+      }
+      
+      // Auto-start if requested
+      if (options.autoStart) {
+        try {
+          await this.startServer(server, installPath);
+        } catch (error) {
+          result.warnings.push(`Failed to auto-start server: ${error.message}`);
+        }
+      }
+      
+      // Complete installation
+      this.emitProgress({
+        stage: 'complete',
         progress: 100,
-        message: `Successfully installed ${repository.name}`,
-        repository
+        message: 'Installation complete',
+        details: `Server installed at ${installPath}`
       });
       
-      // Return installation result
-      return {
-        success: true,
-        repository,
-        installPath: serverDir,
-        configPath,
-        logs
-      };
+      result.success = true;
+      return result;
     } catch (error) {
-      this.logService.error('InstallationService', `Error installing server ${repository.name}: ${error.message}`);
+      this.logService.error('InstallationService', `Installation error for ${server.name}`, error);
       
-      // Update status
-      this.emitStatus({
-        stage: 'failed',
+      // Emit error progress
+      this.emitProgress({
+        stage: 'error',
         progress: 0,
-        message: `Failed to install ${repository.name}`,
-        repository,
+        message: 'Installation failed',
+        details: error.message,
         error
       });
-      
-      addLog(`Installation failed: ${error.message}`);
       
       // Return error result
       return {
         success: false,
-        repository,
-        installPath: '',
+        server,
+        installedPath: '',
         configPath: '',
+        executablePath: '',
         error,
-        logs
+        warnings: []
       };
     }
   }
   
   /**
-   * Install server from NPM
-   * @param repository Repository info
-   * @param installDir Installation directory
+   * Get default installation path for a server
+   * @param server Repository to install
    */
-  private async installFromNpm(repository: RepositoryInfo, installDir: string): Promise<void> {
-    const packageName = repository.installUrl.replace(/^npm:/, '');
-    
-    // Check if npm is available
-    try {
-      await execAsync('npm --version');
-    } catch (error) {
-      throw new Error('npm is not available in the current environment');
-    }
-    
-    // Initialize package.json if it doesn't exist
-    if (!await fs.pathExists(path.join(installDir, 'package.json'))) {
-      await execAsync('npm init -y', { cwd: installDir });
-    }
-    
-    // Install the package
-    try {
-      this.emitStatus({
-        stage: 'installing',
-        progress: 30,
-        message: `Installing ${packageName} via npm...`,
-        repository
-      });
-      
-      await execAsync(`npm install ${packageName} --save`, { cwd: installDir });
-      
-      this.emitStatus({
-        stage: 'installing',
-        progress: 60,
-        message: `Successfully installed ${packageName}`,
-        repository
-      });
-    } catch (error) {
-      throw new Error(`Failed to install via npm: ${error.message}`);
-    }
+  private getDefaultInstallPath(server: RepositoryInfo): string {
+    const sanitizedName = server.name.replace(/[^a-zA-Z0-9_-]/g, '-');
+    return path.join(this.installationPath, sanitizedName);
   }
   
   /**
-   * Install server from GitHub
-   * @param repository Repository info
-   * @param installDir Installation directory
+   * Install a dependency
+   * @param dependency Dependency name
    */
-  private async installFromGitHub(repository: RepositoryInfo, installDir: string): Promise<void> {
-    const repoUrl = repository.installUrl;
-    
-    // Check if git is available
-    try {
-      await execAsync('git --version');
-    } catch (error) {
-      throw new Error('git is not available in the current environment');
-    }
-    
-    // Clone the repository
-    try {
-      this.emitStatus({
-        stage: 'installing',
-        progress: 30,
-        message: `Cloning repository from ${repoUrl}...`,
-        repository
+  private async installDependency(dependency: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      exec(`npm install -g ${dependency}`, (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        
+        resolve();
       });
-      
-      await execAsync(`git clone ${repoUrl} .`, { cwd: installDir });
-      
-      this.emitStatus({
-        stage: 'installing',
-        progress: 50,
-        message: 'Installing dependencies...',
-        repository
+    });
+  }
+  
+  /**
+   * Execute a command
+   * @param command Command to execute
+   * @param options Command options
+   */
+  private async executeCommand(command: string, options: { cwd?: string } = {}): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      exec(command, { cwd: options.cwd }, (error, stdout, stderr) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        
+        resolve(stdout.trim());
       });
-      
-      // Check if package.json exists and install dependencies
-      if (await fs.pathExists(path.join(installDir, 'package.json'))) {
-        await execAsync('npm install', { cwd: installDir });
+    });
+  }
+  
+  /**
+   * Create default configuration for a server
+   * @param server Repository to configure
+   * @param options Custom configuration options
+   */
+  private async createDefaultConfig(
+    server: RepositoryInfo,
+    options: Record<string, any> = {}
+  ): Promise<Record<string, any>> {
+    // Base configuration
+    const config: Record<string, any> = {
+      server: {
+        port: 3000,
+        host: 'localhost'
+      },
+      logging: {
+        level: 'info',
+        directory: 'logs'
+      },
+      model: {
+        provider: 'anthropic',
+        apiKey: process.env.CLAUDE_API_KEY || ''
       }
-      
-      this.emitStatus({
-        stage: 'installing',
-        progress: 60,
-        message: 'Successfully installed from GitHub',
-        repository
-      });
-    } catch (error) {
-      throw new Error(`Failed to install from GitHub: ${error.message}`);
-    }
+    };
+    
+    // Merge custom options
+    return {
+      ...config,
+      ...options
+    };
   }
   
   /**
-   * Create default configuration for the server
-   * @param repository Repository info
-   * @param installDir Installation directory
+   * Get executable path for a server
+   * @param server Repository to check
    */
-  private async createDefaultConfig(repository: RepositoryInfo, installDir: string): Promise<string> {
-    // Default config path
-    const configPath = path.join(installDir, 'config.json');
-    
-    // Check if there's an example config in the repo
-    const examplePaths = [
-      path.join(installDir, 'config.example.json'),
-      path.join(installDir, 'example.config.json'),
-      path.join(installDir, 'examples', 'config.json'),
-      path.join(installDir, 'example', 'config.json')
+  private getExecutablePath(server: RepositoryInfo): string {
+    // Look for common executable patterns
+    const possiblePaths = [
+      'bin/server.js',
+      'dist/server.js',
+      'dist/index.js',
+      'build/server.js',
+      'build/index.js',
+      'server.js',
+      'index.js'
     ];
     
-    // Try to find an example config
-    let exampleConfig: any = null;
-    
-    for (const examplePath of examplePaths) {
-      if (await fs.pathExists(examplePath)) {
-        try {
-          const configContent = await fs.readFile(examplePath, 'utf8');
-          exampleConfig = JSON.parse(configContent);
-          break;
-        } catch (error) {
-          this.logService.warn('InstallationService', `Failed to parse example config at ${examplePath}: ${error.message}`);
-        }
+    // Return first match or default
+    for (const possiblePath of possiblePaths) {
+      if (fs.existsSync(path.join(this.installationPath, server.name, possiblePath))) {
+        return possiblePath;
       }
     }
     
-    // If no example config found, create a basic one
-    if (!exampleConfig) {
-      exampleConfig = {
-        port: 5004,
-        host: '127.0.0.1',
-        logLevel: 'info',
-        models: {
-          claude: {
-            apiKey: 'YOUR_API_KEY_HERE'
-          }
-        }
+    return 'index.js';
+  }
+  
+  /**
+   * Verify server installation
+   * @param server Repository to verify
+   * @param installPath Installation path
+   */
+  private async verifyInstallation(
+    server: RepositoryInfo,
+    installPath: string
+  ): Promise<{ success: boolean; message: string }> {
+    try {
+      // Check package.json exists
+      if (!await fs.pathExists(path.join(installPath, 'package.json'))) {
+        return {
+          success: false,
+          message: 'Missing package.json'
+        };
+      }
+      
+      // Check node_modules exists
+      if (!await fs.pathExists(path.join(installPath, 'node_modules'))) {
+        return {
+          success: false,
+          message: 'Missing node_modules'
+        };
+      }
+      
+      // Check for executable
+      const executablePath = path.join(installPath, this.getExecutablePath(server));
+      if (!await fs.pathExists(executablePath)) {
+        return {
+          success: false,
+          message: 'Missing executable file'
+        };
+      }
+      
+      return {
+        success: true,
+        message: 'Verification successful'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Verification error: ${error.message}`
       };
     }
+  }
+  
+  /**
+   * Create shortcut for a server
+   * @param server Repository to create shortcut for
+   * @param executablePath Path to executable
+   * @param customName Custom name for shortcut
+   */
+  private async createShortcut(
+    server: RepositoryInfo,
+    executablePath: string,
+    customName?: string
+  ): Promise<void> {
+    // Platform-specific shortcut creation
+    const shortcutName = customName || server.name;
     
-    // Write the config file
-    await fs.writeFile(configPath, JSON.stringify(exampleConfig, null, 2), 'utf8');
-    
-    return configPath;
+    try {
+      if (process.platform === 'win32') {
+        // Windows shortcut
+        const desktopPath = path.join(os.homedir(), 'Desktop');
+        const shortcutPath = path.join(desktopPath, `${shortcutName}.lnk`);
+        
+        // Use Windows Script Host to create shortcut
+        const script = `
+          var wsh = new ActiveXObject('WScript.Shell');
+          var shortcut = wsh.CreateShortcut('${shortcutPath}');
+          shortcut.TargetPath = 'node';
+          shortcut.Arguments = '"${executablePath}"';
+          shortcut.Description = 'MCP Server - ${shortcutName}';
+          shortcut.WorkingDirectory = '${path.dirname(executablePath)}';
+          shortcut.Save();
+        `;
+        
+        const scriptPath = path.join(os.tmpdir(), 'create-shortcut.js');
+        await fs.writeFile(scriptPath, script);
+        
+        // Execute script
+        await this.executeCommand(`cscript //NoLogo "${scriptPath}"`);
+        
+        // Cleanup
+        await fs.remove(scriptPath);
+      } else if (process.platform === 'darwin') {
+        // macOS shortcut
+        const applicationsPath = '/Applications';
+        const appPath = path.join(applicationsPath, `${shortcutName}.app`);
+        
+        // Create .app structure
+        await fs.ensureDir(path.join(appPath, 'Contents', 'MacOS'));
+        
+        // Create executable script
+        const scriptContent = `#!/bin/bash
+        cd "${path.dirname(executablePath)}"
+        node "${executablePath}"
+        `;
+        
+        const scriptPath = path.join(appPath, 'Contents', 'MacOS', shortcutName);
+        await fs.writeFile(scriptPath, scriptContent);
+        await fs.chmod(scriptPath, 0o755);
+        
+        // Create Info.plist
+        const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+          <key>CFBundleExecutable</key>
+          <string>${shortcutName}</string>
+          <key>CFBundleIdentifier</key>
+          <string>com.mcpdoctor.${shortcutName}</string>
+          <key>CFBundleName</key>
+          <string>${shortcutName}</string>
+          <key>CFBundleDisplayName</key>
+          <string>${shortcutName}</string>
+        </dict>
+        </plist>`;
+        
+        await fs.writeFile(path.join(appPath, 'Contents', 'Info.plist'), plistContent);
+      } else {
+        // Linux shortcut
+        const desktopPath = path.join(os.homedir(), '.local', 'share', 'applications');
+        await fs.ensureDir(desktopPath);
+        
+        const desktopContent = `[Desktop Entry]
+        Type=Application
+        Name=${shortcutName}
+        Exec=node "${executablePath}"
+        Terminal=true
+        Categories=Development;
+        `;
+        
+        await fs.writeFile(path.join(desktopPath, `${shortcutName}.desktop`), desktopContent);
+        await fs.chmod(path.join(desktopPath, `${shortcutName}.desktop`), 0o755);
+      }
+    } catch (error) {
+      this.logService.warn('InstallationService', `Failed to create shortcut: ${error.message}`);
+      // Continue even if shortcut creation fails
+    }
   }
   
   /**
-   * Get system information
+   * Add executable to PATH
+   * @param executablePath Path to executable
    */
-  async getSystemInfo(): Promise<SystemInfo> {
-    return this.compatibilityChecker.getSystemInfo();
+  private async addToPath(executablePath: string): Promise<void> {
+    try {
+      const binDir = path.dirname(executablePath);
+      
+      if (process.platform === 'win32') {
+        // Windows PATH
+        const userPath = await this.executeCommand('echo %PATH%');
+        if (!userPath.includes(binDir)) {
+          // Add to user PATH using setx
+          await this.executeCommand(`setx PATH "%PATH%;${binDir}"`);
+        }
+      } else {
+        // Unix PATH
+        const shellProfile = process.platform === 'darwin'
+          ? path.join(os.homedir(), '.zshrc')  // macOS uses zsh by default now
+          : path.join(os.homedir(), '.bashrc'); // Linux typically uses bash
+        
+        // Check if path already exists in profile
+        let profileContent = '';
+        try {
+          profileContent = await fs.readFile(shellProfile, 'utf8');
+        } catch (error) {
+          // Create file if it doesn't exist
+          await fs.writeFile(shellProfile, '', 'utf8');
+        }
+        
+        // Only add if not already in PATH
+        if (!profileContent.includes(binDir)) {
+          const exportLine = `\n# Added by MCP Doctor\nexport PATH="$PATH:${binDir}"\n`;
+          await fs.appendFile(shellProfile, exportLine);
+        }
+      }
+    } catch (error) {
+      this.logService.warn('InstallationService', `Failed to add to PATH: ${error.message}`);
+      // Continue even if PATH modification fails
+    }
   }
   
   /**
-   * Search for MCP servers
-   * @param query Search query
+   * Start server after installation
+   * @param server Repository to start
+   * @param installPath Installation path
    */
-  async searchForServers(query: string): Promise<RepositoryInfo[]> {
-    return this.repositoryScanner.searchMcpServers(query);
+  private async startServer(server: RepositoryInfo, installPath: string): Promise<void> {
+    try {
+      const executablePath = path.join(installPath, this.getExecutablePath(server));
+      
+      // Use detached process to keep server running after installation completes
+      const { spawn } = require('child_process');
+      const serverProcess = spawn('node', [executablePath], {
+        cwd: installPath,
+        detached: true,
+        stdio: 'ignore'
+      });
+      
+      // Unref process to allow parent to exit
+      serverProcess.unref();
+      
+      this.logService.info('InstallationService', `Started server process with PID ${serverProcess.pid}`);
+    } catch (error) {
+      this.logService.error('InstallationService', `Failed to start server: ${error.message}`);
+      throw error;
+    }
   }
   
   /**
-   * Emit status update
-   * @param status Installation status
+   * Emit installation progress
+   * @param progress Progress data
    */
-  private emitStatus(status: InstallationStatus): void {
-    this.emit('status', status);
+  private emitProgress(progress: InstallationProgress): void {
+    this.emit('progress', progress);
+    this.logService.debug('InstallationService', `Installation progress: ${progress.stage} (${progress.progress}%) - ${progress.message}`);
+  }
+  
+  /**
+   * Set base installation path
+   * @param path New installation path
+   */
+  public setInstallationPath(path: string): void {
+    this.installationPath = path;
+  }
+  
+  /**
+   * Get base installation path
+   */
+  public getInstallationPath(): string {
+    return this.installationPath;
+  }
+  
+  /**
+   * Clean installation directory
+   */
+  public async cleanInstallations(): Promise<void> {
+    try {
+      await fs.emptyDir(this.installationPath);
+      this.logService.info('InstallationService', 'Cleaned installation directory');
+    } catch (error) {
+      this.logService.error('InstallationService', `Failed to clean installation directory: ${error.message}`);
+      throw error;
+    }
   }
 }
