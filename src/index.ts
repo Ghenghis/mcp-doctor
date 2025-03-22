@@ -5,6 +5,7 @@ import { SystemDetector } from './core/diagnostics/SystemDetector';
 import { LogAnalyzer } from './core/diagnostics/LogAnalyzer';
 import { ConfigManager } from './core/config/ConfigManager';
 import { BackupManager } from './core/backup/BackupManager';
+import { AIService } from './services/AIService';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -24,12 +25,23 @@ async function main() {
     const configManager = new ConfigManager();
     const backupManager = new BackupManager();
     
+    // Initialize AI service if API key is available
+    let aiService = null;
+    const apiKey = process.env.CLAUDE_API_KEY;
+    if (apiKey) {
+      aiService = new AIService({ apiKey });
+      logger.info('Claude API integration initialized');
+    } else {
+      logger.info('Claude API key not found, AI features will be disabled');
+    }
+    
     // Create the app manager
     const appManager = new AppManager({
       systemDetector,
       logAnalyzer,
       configManager,
       backupManager,
+      aiService,
     });
     
     // Initialize directories
