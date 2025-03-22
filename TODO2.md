@@ -23,8 +23,8 @@ This document outlines additional features and improvements planned for the MCP 
 - [x] Create log explorer with visualization
 - [x] Implement server monitoring service
 - [x] Build request inspector
-- [ ] Implement network traffic analyzer
-- [ ] Create performance profiling tools
+- [x] Implement network traffic analyzer
+- [x] Create performance profiling tools
 - [ ] Add visual data flow diagrams
 
 ### 4. Namespace Isolation
