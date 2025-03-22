@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Create a report to help us improve MCP Doctor
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -11,9 +11,10 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
-1. Open application
-2. Click on '...'
-3. See error
+1. Go to '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
 **Expected behavior**
 A clear and concise description of what you expected to happen.
@@ -21,22 +22,16 @@ A clear and concise description of what you expected to happen.
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
 
-**System Information:**
- - OS: [e.g. Windows 10, macOS 13.1, Ubuntu 22.04]
- - MCP Doctor Version: [e.g. 0.1.0]
- - MCP Client(s): [e.g. Claude Desktop, Windsurf Editor, Cursor]
- - Node.js Version (if applicable): [e.g. 18.14.2]
+**Environment (please complete the following information):**
+- OS: [e.g. Windows 10, macOS Monterey, Ubuntu 22.04]
+- MCP Doctor Version: [e.g. 0.1.0]
+- MCP Clients Installed: [e.g. Claude Desktop, Windsurf Editor, Cursor]
+- Node.js Version (if known): [e.g. 16.14.0]
 
 **MCP Server Information:**
- - Affected Server Name: [e.g. filesystem, github]
- - Server Command: [e.g. npx]
- - Server Args: [e.g. "-y", "@modelcontextprotocol/server-filesystem"]
-
-**Logs**
-If possible, please attach relevant logs from:
-- Windows: `%APPDATA%\MCP Doctor\logs\`
-- macOS: `~/Library/Application Support/MCP Doctor/logs/`
-- Linux: `~/.config/MCP Doctor/logs/`
+- MCP Server Name: [e.g. filesystem, github]
+- MCP Server Command: [e.g. npx]
+- MCP Server Args: [e.g. -y @modelcontextprotocol/server-filesystem]
 
 **Additional context**
 Add any other context about the problem here.
