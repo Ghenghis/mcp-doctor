@@ -6,6 +6,7 @@ import { LogAnalyzer } from './core/diagnostics/LogAnalyzer';
 import { ConfigManager } from './core/config/ConfigManager';
 import { BackupManager } from './core/backup/BackupManager';
 import { AIService } from './services/AIService';
+import { AutoUpdateService } from './services/AutoUpdateService';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -35,6 +36,14 @@ async function main() {
       logger.info('Claude API key not found, AI features will be disabled');
     }
     
+    // Initialize auto-update service
+    const autoUpdateService = new AutoUpdateService({
+      checkAtStartup: true,
+      autoInstall: false,
+      allowPrerelease: app.getVersion().includes('beta') || app.getVersion().includes('alpha')
+    });
+    logger.info('Auto-update service initialized');
+    
     // Create the app manager
     const appManager = new AppManager({
       systemDetector,
@@ -42,6 +51,7 @@ async function main() {
       configManager,
       backupManager,
       aiService,
+      autoUpdateService
     });
     
     // Initialize directories
@@ -84,6 +94,10 @@ async function initializeDirectories() {
   // Ensure backups directory exists
   const backupsDir = path.join(app.getPath('userData'), 'backups');
   await fs.ensureDir(backupsDir);
+  
+  // Ensure updates directory exists
+  const updatesDir = path.join(app.getPath('userData'), 'updates');
+  await fs.ensureDir(updatesDir);
 }
 
 // Handle app ready event
