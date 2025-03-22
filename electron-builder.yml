@@ -1,0 +1,53 @@
+appId: com.mcp-doctor.app
+productName: MCP Doctor
+
+directories:
+  output: dist_electron
+  buildResources: build
+
+files:
+  - dist/**/*
+  - assets/**/*
+  - package.json
+
+mac:
+  category: public.app-category.developer-tools
+  target: 
+    - dmg
+    - zip
+  icon: assets/icons/mac/icon.icns
+  darkModeSupport: true
+
+win:
+  target:
+    - nsis
+    - portable
+  icon: assets/icons/win/icon.ico
+
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  icon: assets/icons/png
+  category: Development
+
+nsis:
+  oneClick: true
+  allowToChangeInstallationDirectory: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: MCP Doctor
+
+dmg:
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+publish:
+  provider: github
+  releaseType: draft
