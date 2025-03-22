@@ -23,19 +23,21 @@ MCP Doctor is a comprehensive management and debugging tool for Model Context Pr
 
 ### Visual Debugging Tools
 - **Network Traffic Analyzer**: Monitor and analyze MCP server network traffic in real-time
-- **Performance Profiler**: Track CPU, memory, network, and disk usage
+- **Performance Profiler**: Track CPU, memory, network, and disk usage with detailed visualization
 - **Log Explorer**: Visualize and filter server logs
 - **Request Inspector**: Analyze and debug MCP requests and responses
+
+### Dynamic GUI Updates
+- **Real-Time Updates**: UI automatically reflects configuration changes instantly
+- **Live Configuration Preview**: See the effects of changes before applying them
+- **Real-Time Statistics Dashboard**: Monitor server performance with auto-refreshing charts
+- **Notification System**: Receive alerts about important events and state changes
+- **Theme Switching**: Choose between light, dark, and neon themes to match your preferences
 
 ### Namespace Isolation
 - **Conflict Prevention**: Each MCP server operates in its own namespace
 - **Resource Allocation**: Control CPU, memory, and disk resources for each server
 - **Environment Variables**: Isolated environment variables for each server
-
-### Dynamic GUI Updates
-- **Real-Time Updates**: UI automatically reflects configuration changes
-- **Responsive Design**: Works on desktops, tablets, and mobile devices
-- **Customizable Themes**: Choose between light, dark, and custom themes
 
 ## Installation
 
@@ -143,6 +145,38 @@ Example configuration:
   }
 }
 ```
+
+## Key Features In-Depth
+
+### Dynamic Statistics Dashboard
+
+The Real-Time Statistics Dashboard provides comprehensive monitoring of MCP server performance:
+
+- **Live Metrics**: Monitor CPU, memory, network, and disk usage in real-time
+- **Historical Trends**: View performance trends over time with interactive charts
+- **Server Comparison**: Compare performance metrics across multiple servers
+- **Alert Thresholds**: Configure thresholds for automatic alerts
+- **Export Capabilities**: Export metrics as CSV or JSON for further analysis
+
+### Live Configuration Preview
+
+The Live Configuration Preview provides a powerful interface for editing server configurations:
+
+- **Real-Time Validation**: Instantly validate changes for correctness
+- **Side-by-Side Comparison**: See changes highlighted before applying them
+- **JSON Preview**: View the underlying JSON configuration
+- **Template Support**: Save configurations as templates for reuse
+- **Import/Export**: Share configurations between servers or teams
+
+### Advanced Notification System
+
+The notification system keeps you informed about important events:
+
+- **Priority Levels**: Color-coded by severity (info, success, warning, error)
+- **Toast Notifications**: Non-intrusive notifications for real-time updates
+- **Notification Center**: Persistent record of all notifications
+- **Filtering Options**: Filter notifications by type, severity, or timestamp
+- **Actionable Alerts**: Click to respond to or resolve issues
 
 ## API Reference
 
