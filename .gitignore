@@ -1,3 +1,13 @@
+# Dependency directories
+node_modules/
+jspm_packages/
+
+# Build output
+dist/
+dist_electron/
+build/
+out/
+
 # Logs
 logs
 *.log
@@ -6,18 +16,26 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# Coverage directory
+coverage/
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# IDE and editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
 
-# Dependency directories
-node_modules/
-jspm_packages/
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Package files
+*.tgz
+.yarn-integrity
 
 # TypeScript cache
 *.tsbuildinfo
@@ -28,32 +46,30 @@ jspm_packages/
 # Optional eslint cache
 .eslintcache
 
-# Optional REPL history
-.node_repl_history
+# Electron builder output
+/dist_electron
 
-# Output of 'npm pack'
-*.tgz
+# User data
+userData/
+backups/
 
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-.env.test
-
-# Build outputs
-dist/
-dist_electron/
-build/
-out/
-
-# Coverage directory
-coverage/
-
-# IDE/Editor folders
-.idea/
-.vscode/
-*.swp
-*.swo
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
 Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# local env files
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
