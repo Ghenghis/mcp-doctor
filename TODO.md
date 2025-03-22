@@ -8,7 +8,7 @@
 - [x] Setup ESLint and Prettier
 - [x] Create initial README.md
 - [x] Setup GitHub Actions CI/CD pipeline
-- [ ] Create issue templates
+- [x] Create issue templates
 
 ## Core Infrastructure (Week 1)
 - [x] Implement system detection module
