@@ -7,6 +7,7 @@ import { getLogger } from '../core/logging';
 import { SystemDetector } from '../core/diagnostics/SystemDetector';
 import { ConfigManager } from '../core/config/ConfigManager';
 import { BackupManager } from '../core/backup/BackupManager';
+import { AILogAnalyzerService } from './AILogAnalyzerService';
 import { Change, ChangeType, ErrorType, Fix, FixResult, MCPClient, MCPError, MCPServer, RepairPlan } from '../types';
 
 /**
@@ -16,6 +17,7 @@ export interface RepairServiceOptions {
   systemDetector: SystemDetector;
   configManager: ConfigManager;
   backupManager: BackupManager;
+  aiLogAnalyzer?: AILogAnalyzerService;
 }
 
 /**
@@ -26,6 +28,7 @@ export class RepairService extends EventEmitter {
   private systemDetector: SystemDetector;
   private configManager: ConfigManager;
   private backupManager: BackupManager;
+  private aiLogAnalyzer?: AILogAnalyzerService;
   
   constructor(options: RepairServiceOptions) {
     super();
@@ -33,6 +36,7 @@ export class RepairService extends EventEmitter {
     this.systemDetector = options.systemDetector;
     this.configManager = options.configManager;
     this.backupManager = options.backupManager;
+    this.aiLogAnalyzer = options.aiLogAnalyzer;
   }
   
   /**
@@ -53,6 +57,45 @@ export class RepairService extends EventEmitter {
   async stop(): Promise<void> {
     this.logger.info('Stopping repair service');
     this.logger.info('Repair service stopped');
+  }
+  
+  /**
+   * Create AI-powered repair plan
+   * @param client MCP client
+   */
+  async createAIRepairPlan(client: MCPClient): Promise<RepairPlan> {
+    this.logger.info(`Creating AI-powered repair plan for ${client.name}`);
+    
+    // Check if AI log analyzer is available
+    if (!this.aiLogAnalyzer) {
+      this.logger.warn('AI log analyzer not available, using standard repair plan');
+      return this.createRepairPlan(client, []);
+    }
+    
+    try {
+      // Analyze logs with AI assistance
+      const aiAnalysis = await this.aiLogAnalyzer.analyzeClientLogs(client);
+      
+      // Create standard repair plan based on standard errors
+      const standardPlan = await this.createRepairPlan(client, aiAnalysis.standardErrors);
+      
+      // Combine standard fixes with AI-suggested fixes
+      const combinedFixes = [
+        ...standardPlan.fixes,
+        ...aiAnalysis.aiSuggestedFixes,
+      ];
+      
+      return {
+        errors: aiAnalysis.standardErrors,
+        fixes: combinedFixes,
+        requiresConfirmation: true, // AI-suggested fixes always require confirmation
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create AI repair plan for ${client.name}`, error);
+      
+      // Fall back to standard repair plan
+      return this.createRepairPlan(client, []);
+    }
   }
   
   /**
@@ -196,7 +239,7 @@ export class RepairService extends EventEmitter {
     
     if (commandNotFoundError) {
       // Extract command name
-      const match = commandNotFoundError.message.match(/"([^"]+)"/);
+      const match = commandNotFoundError.message.match(/\"([^\"]+)\"/);
       if (match && match[1]) {
         const command = match[1];
         
@@ -493,11 +536,34 @@ export class RepairService extends EventEmitter {
       // Create backup
       await this.backupManager.createAutomaticBackupIfNeeded(client);
       
-      // Verify config file
-      const configRepaired = await this.configManager.repairConfig(client.configPath, client.type);
-      
-      if (configRepaired) {
-        this.logger.info(`Repaired ${client.name} configuration`);
+      // Use AI-powered repair if available
+      if (this.aiLogAnalyzer) {
+        this.logger.info(`Using AI-powered repair for ${client.name}`);
+        
+        // Create AI repair plan
+        const aiPlan = await this.createAIRepairPlan(client);
+        
+        // Filter for automatic fixes
+        const automaticFixes = aiPlan.fixes.filter(fix => fix.automaticFix);
+        
+        // Apply automatic fixes if available
+        if (automaticFixes.length > 0) {
+          const automaticPlan: RepairPlan = {
+            errors: aiPlan.errors,
+            fixes: automaticFixes,
+            requiresConfirmation: false,
+          };
+          
+          await this.applyRepairPlan(client, automaticPlan);
+        }
+      } else {
+        // Fallback to standard repair
+        // Verify config file
+        const configRepaired = await this.configManager.repairConfig(client.configPath, client.type);
+        
+        if (configRepaired) {
+          this.logger.info(`Repaired ${client.name} configuration`);
+        }
       }
       
       return true;
