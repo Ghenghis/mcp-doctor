@@ -1,13 +1,3 @@
-# Dependency directories
-node_modules/
-jspm_packages/
-
-# Build output
-dist/
-dist_electron/
-build/
-out/
-
 # Logs
 logs
 *.log
@@ -15,27 +5,20 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+.pnpm-debug.log*
 
-# Coverage directory
-coverage/
+# Diagnostic reports (https://nodejs.org/api/report.html)
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# IDE and editor files
-.idea/
-.vscode/
-*.swp
-*.swo
-.DS_Store
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Environment files
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# Package files
-*.tgz
-.yarn-integrity
+# Dependency directories
+node_modules/
+jspm_packages/
 
 # TypeScript cache
 *.tsbuildinfo
@@ -46,30 +29,56 @@ coverage/
 # Optional eslint cache
 .eslintcache
 
-# Electron builder output
-/dist_electron
+# Optional stylelint cache
+.stylelintcache
 
-# User data
-userData/
-backups/
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
-# macOS
-.DS_Store
-.AppleDouble
-.LSOverride
-._*
+# Optional REPL history
+.node_repl_history
 
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
+# Output of 'npm pack'
+*.tgz
 
-# Linux
-*~
+# Yarn Integrity file
+.yarn-integrity
 
-# local env files
-.env.local
+# dotenv environment variable files
+.env
 .env.development.local
 .env.test.local
 .env.production.local
+.env.local
+
+# Build output
+dist/
+dist_electron/
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Electron auto-updates
+app-update.yml
+dev-app-update.yml
+
+# MCP Doctor specific
+backups/
