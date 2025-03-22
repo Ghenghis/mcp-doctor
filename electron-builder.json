@@ -1,0 +1,57 @@
+{
+  "appId": "com.mcpdoctor.app",
+  "productName": "MCP Doctor",
+  "copyright": "Copyright © 2025 Ghenghis",
+  "directories": {
+    "output": "dist_electron"
+  },
+  "files": [
+    "dist/**/*",
+    "assets/**/*"
+  ],
+  "extraResources": [
+    "assets/**/*"
+  ],
+  "mac": {
+    "category": "public.app-category.developer-tools",
+    "icon": "assets/icons/mac/icon.icns",
+    "hardenedRuntime": true,
+    "gatekeeperAssess": false,
+    "entitlements": "build/entitlements.mac.plist",
+    "entitlementsInherit": "build/entitlements.mac.plist",
+    "target": [
+      "dmg"
+    ]
+  },
+  "win": {
+    "icon": "assets/icons/win/icon.ico",
+    "target": [
+      {
+        "target": "nsis",
+        "arch": [
+          "x64",
+          "ia32"
+        ]
+      }
+    ]
+  },
+  "linux": {
+    "icon": "assets/icons/png",
+    "target": [
+      "AppImage",
+      "deb",
+      "rpm"
+    ],
+    "category": "Development"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true
+  },
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
+  }
+}
