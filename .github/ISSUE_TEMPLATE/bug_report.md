@@ -1,9 +1,10 @@
 ---
 name: Bug report
-about: Create a report to help us improve MCP Doctor
+about: Create a report to help us improve
 title: '[BUG] '
 labels: bug
 assignees: ''
+
 ---
 
 **Describe the bug**
@@ -23,15 +24,19 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
-- OS: [e.g. Windows 10, macOS Monterey, Ubuntu 22.04]
-- MCP Doctor Version: [e.g. 0.1.0]
-- MCP Clients Installed: [e.g. Claude Desktop, Windsurf Editor, Cursor]
-- Node.js Version (if known): [e.g. 16.14.0]
+ - OS: [e.g. Windows 10, macOS 12.0, Ubuntu 22.04]
+ - MCP Doctor Version: [e.g. 0.1.0]
+ - MCP Clients: [e.g. Claude Desktop 1.0.3, Windsurf Editor 2.1.4]
 
-**MCP Server Information:**
-- MCP Server Name: [e.g. filesystem, github]
-- MCP Server Command: [e.g. npx]
-- MCP Server Args: [e.g. -y @modelcontextprotocol/server-filesystem]
+**MCP Servers (please list the problematic servers):**
+ - Server name: [e.g. filesystem]
+ - Command: [e.g. npx -y @modelcontextprotocol/server-filesystem]
+
+**Logs**
+If possible, please include relevant logs from:
+- Windows: `%APPDATA%\Claude\logs\mcp-*.log`
+- macOS: `~/Library/Logs/Claude/mcp-*.log`
+- MCP Doctor logs: Accessible from the Dashboard > Logs tab
 
 **Additional context**
 Add any other context about the problem here.
