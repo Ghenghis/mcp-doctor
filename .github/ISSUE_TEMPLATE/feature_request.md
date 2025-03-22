@@ -1,22 +1,35 @@
 ---
 name: Feature request
-about: Suggest an idea for this project
-title: '[FEATURE] '
+about: Suggest an idea for MCP Doctor
+title: "[FEATURE]"
 labels: enhancement
 assignees: ''
+
 ---
 
-## Problem Statement
-A clear and concise description of what problem you're trying to solve. Ex. I'm always frustrated when [...]
+**Is your feature request related to a problem? Please describe.**
+A clear and concise description of what the problem is. For example: I'm always frustrated when [...]
 
-## Proposed Solution
+**Describe the solution you'd like**
 A clear and concise description of what you want to happen.
 
-## Alternatives Considered
+**Describe alternatives you've considered**
 A clear and concise description of any alternative solutions or features you've considered.
 
-## MCP Client Integration
-If your feature request is related to a specific MCP client (Claude Desktop, Windsurf, Cursor, etc.), please provide details here.
+**MCP Client Support**
+Which MCP clients would this feature support?
+- [ ] Claude Desktop
+- [ ] Windsurf Editor
+- [ ] Cursor
+- [ ] Other (please specify)
 
-## Additional Context
+**MCP Server Types**
+Which types of MCP servers would this feature support?
+- [ ] File system servers
+- [ ] Database servers
+- [ ] API servers
+- [ ] Docker-based servers
+- [ ] Other (please specify)
+
+**Additional context**
 Add any other context or screenshots about the feature request here.
