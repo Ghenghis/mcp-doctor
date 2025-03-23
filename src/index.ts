@@ -7,6 +7,7 @@ import { ConfigManager } from './core/config/ConfigManager';
 import { BackupManager } from './core/backup/BackupManager';
 import { AIService } from './services/AIService';
 import { AutoUpdateService } from './services/AutoUpdateService';
+import { initializeSecurityServices } from './services/security';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 
@@ -43,6 +44,10 @@ async function main() {
       allowPrerelease: app.getVersion().includes('beta') || app.getVersion().includes('alpha')
     });
     logger.info('Auto-update service initialized');
+    
+    // Initialize security services
+    initializeSecurityServices();
+    logger.info('Security services initialized');
     
     // Create the app manager
     const appManager = new AppManager({
@@ -98,6 +103,12 @@ async function initializeDirectories() {
   // Ensure updates directory exists
   const updatesDir = path.join(app.getPath('userData'), 'updates');
   await fs.ensureDir(updatesDir);
+  
+  // Ensure security directory exists
+  const securityDir = path.join(app.getPath('userData'), 'security');
+  await fs.ensureDir(securityDir);
+  await fs.ensureDir(path.join(securityDir, 'reports'));
+  await fs.ensureDir(path.join(securityDir, 'patches'));
 }
 
 // Handle app ready event
