@@ -1,0 +1,61 @@
+name: Dependency Vulnerability Scan
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'yarn.lock'
+  # Run on a schedule (weekly)
+  schedule:
+    - cron: '0 0 * * 0'
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          
+      - name: Run npm audit
+        run: npm audit --production
+        continue-on-error: true
+        
+      - name: GitHub Advanced Security Dependency Scan
+        uses: github/dependency-review-action@v3
+        if: github.event_name == 'pull_request'
+        
+      - name: Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          
+      - name: Generate security report
+        run: |
+          echo "## Dependency Security Report" > security-report.md
+          echo "Generated on $(date)" >> security-report.md
+          echo "" >> security-report.md
+          echo "### NPM Audit Results" >> security-report.md
+          npm audit --json | jq -r '.advisories | length' | xargs -I{} echo "Found {} vulnerabilities" >> security-report.md
+        continue-on-error: true
+        
+      - name: Upload security report
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.md
