@@ -1,0 +1,47 @@
+name: Security Tests
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/services/security/**'
+      - 'src/types/security.ts'
+      - 'src/tests/security.test.ts'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/services/security/**'
+      - 'src/types/security.ts'
+      - 'src/tests/security.test.ts'
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [16.x, 18.x, 20.x]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security tests
+        run: npm test -- -t "Security Services"
+        
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: test-results-${{ matrix.node-version }}
+          path: test-results/
