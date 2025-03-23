@@ -1,0 +1,11 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Run security checks before committing
+echo "🔒 Running security checks..."
+
+# Check for sensitive data in staged files
+node scripts/check-sensitive-data.js
+
+# Lint staged files
+npx lint-staged
