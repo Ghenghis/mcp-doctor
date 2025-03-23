@@ -1,0 +1,134 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        node-version: [18.x]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build
+        run: npm run build
+        
+      - name: Run tests
+        run: npm test
+        
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.os }}
+          path: |
+            dist/
+            build/
+            
+  package:
+    name: Package Application
+    needs: build
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            artifact_name: mcp-doctor-linux
+            asset_name: mcp-doctor-linux.deb
+          - os: windows-latest
+            artifact_name: mcp-doctor-windows
+            asset_name: mcp-doctor-windows.exe
+          - os: macos-latest
+            artifact_name: mcp-doctor-macos
+            asset_name: mcp-doctor-macos.pkg
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Download build artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: build-${{ matrix.os }}
+          path: dist
+          
+      - name: Package app
+        run: npm run package
+        
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: |
+            dist/*.exe
+            dist/*.deb
+            dist/*.pkg
+            dist/*.AppImage
+            dist/*.dmg
+            dist/*.zip
+          if-no-files-found: ignore
+          
+  release:
+    name: Create Release
+    needs: package
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download Linux package
+        uses: actions/download-artifact@v3
+        with:
+          name: mcp-doctor-linux
+          path: packages
+          
+      - name: Download Windows package
+        uses: actions/download-artifact@v3
+        with:
+          name: mcp-doctor-windows
+          path: packages
+          
+      - name: Download macOS package
+        uses: actions/download-artifact@v3
+        with:
+          name: mcp-doctor-macos
+          path: packages
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: packages/*
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
