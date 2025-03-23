@@ -411,7 +411,7 @@ const EnhancedDashboard: React.FC = () => {
         </Box>
         
         <Box display="flex" alignItems="center">
-          {/* Add ThemeSettingsPanel component here */}
+          {/* Theme Settings Panel */}
           <ThemeSettingsPanel />
           
           <Tooltip title="Export dashboard">
