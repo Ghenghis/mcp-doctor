@@ -37,6 +37,9 @@ import NetworkGraph, { GraphData } from '../visualization/NetworkGraph';
 import { visualizationService, MetricGroup } from '../../services/visualization/VisualizationService';
 import { useUI } from '../../context/UIContext';
 
+// Import theme components
+import ThemeSettingsPanel from '../ui/ThemeSettingsPanel';
+
 // Reuse existing components
 import RealTimeStatsDashboard from './RealTimeStatsDashboard';
 import MaintenanceDashboard from './MaintenanceDashboard';
@@ -407,7 +410,10 @@ const EnhancedDashboard: React.FC = () => {
           </Typography>
         </Box>
         
-        <Box>
+        <Box display="flex" alignItems="center">
+          {/* Add ThemeSettingsPanel component here */}
+          <ThemeSettingsPanel />
+          
           <Tooltip title="Export dashboard">
             <IconButton sx={{ color: '#00FFFF' }}>
               <DownloadIcon />
