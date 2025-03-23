@@ -410,8 +410,8 @@ const EnhancedDashboard: React.FC = () => {
           </Typography>
         </Box>
         
-        <Box display="flex" alignItems="center">
-          {/* Theme Settings Panel */}
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          {/* Add ThemeSettingsPanel here */}
           <ThemeSettingsPanel />
           
           <Tooltip title="Export dashboard">
