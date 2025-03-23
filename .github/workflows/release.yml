@@ -5,6 +5,13 @@ on:
     tags:
       - 'v*'
 
+# Add explicit permissions following the principle of least privilege
+permissions:
+  contents: write  # Needed for creating releases
+  packages: write  # Needed for publishing packages
+  actions: read    # Needed for workflow runs
+  id-token: write  # Needed for signing
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}

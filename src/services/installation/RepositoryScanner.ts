@@ -1,6 +1,35 @@
 import axios from 'axios';
 import * as semver from 'semver';
 import { LogService } from '../logging/LogService';
+import { URL } from 'url';
+
+/**
+ * Utility function to safely validate and sanitize URLs
+ * @param urlString The URL to validate and sanitize
+ * @returns Sanitized URL string or empty string if invalid
+ */
+function sanitizeUrl(urlString: string): string {
+  try {
+    // First, clean common patterns in repository URLs
+    const cleanedUrl = urlString
+      .replace(/^git\+/, '')
+      .replace(/\.git$/, '');
+    
+    // Validate URL by parsing it
+    const url = new URL(cleanedUrl);
+    
+    // Only allow http and https protocols
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return '';
+    }
+    
+    // Return the sanitized URL
+    return url.toString();
+  } catch (error) {
+    // If URL parsing fails, return empty string
+    return '';
+  }
+}
 
 /**
  * Interface for repository metadata
@@ -161,7 +190,7 @@ export class RepositoryScanner {
           lastUpdated: new Date(repoData.updated_at),
           version: latestVersion,
           isMcpCompatible,
-          url: repoData.html_url,
+          url: sanitizeUrl(repoData.html_url),
           installUrl: `https://github.com/${repoFullName}`,
           tags: repoData.topics || [],
           requirements
@@ -202,9 +231,7 @@ export class RepositoryScanner {
         let owner = '';
         
         if (packageData.repository?.url) {
-          repoUrl = packageData.repository.url
-            .replace(/^git\+/, '')
-            .replace(/\.git$/, '');
+          repoUrl = sanitizeUrl(packageData.repository.url);
           
           // Extract owner from GitHub URL
           if (repoUrl.includes('github.com')) {
@@ -228,7 +255,7 @@ export class RepositoryScanner {
           lastUpdated: new Date(packageData.time?.modified || packageData.time?.created || Date.now()),
           version: latestVersion,
           isMcpCompatible,
-          url: repoUrl || `https://www.npmjs.com/package/${packageName}`,
+          url: repoUrl || sanitizeUrl(`https://www.npmjs.com/package/${packageName}`),
           installUrl: `npm:${packageName}@${latestVersion}`,
           tags: packageData.keywords || [],
           requirements
@@ -264,9 +291,7 @@ export class RepositoryScanner {
             let owner = '';
             
             if (packageData.repository?.url) {
-              repoUrl = packageData.repository.url
-                .replace(/^git\+/, '')
-                .replace(/\.git$/, '');
+              repoUrl = sanitizeUrl(packageData.repository.url);
               
               // Extract owner from GitHub URL
               if (repoUrl.includes('github.com')) {
@@ -293,7 +318,7 @@ export class RepositoryScanner {
               lastUpdated: new Date(packageData.time?.modified || packageData.time?.created || Date.now()),
               version: latestVersion,
               isMcpCompatible: true,
-              url: repoUrl || `https://www.npmjs.com/package/${packageName}`,
+              url: repoUrl || sanitizeUrl(`https://www.npmjs.com/package/${packageName}`),
               installUrl: `npm:${packageName}@${latestVersion}`,
               tags: packageData.keywords || [],
               requirements

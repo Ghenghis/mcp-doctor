@@ -9,6 +9,12 @@ on:
   # Manual trigger
   workflow_dispatch:
 
+# Add explicit permissions following the principle of least privilege
+permissions:
+  contents: read
+  pages: write
+  id-token: read
+
 jobs:
   generate-docs:
     runs-on: ubuntu-latest
