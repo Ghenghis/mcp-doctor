@@ -1,0 +1,88 @@
+name: Code Quality & Security Analysis
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  # Manual trigger
+  workflow_dispatch:
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'typescript' ]
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Initialize CodeQL
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      # Autobuild attempts to build any compiled languages
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      # Run CodeQL Analysis
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{matrix.language}}"
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run ESLint
+        run: npx eslint . --ext .js,.jsx,.ts,.tsx
+        continue-on-error: true
+        
+      - name: Run TypeScript Compiler Check
+        run: npx tsc --noEmit
+        continue-on-error: true
+
+  security-scan:
+    name: Security Code Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Run Security Scanner
+        uses: ShiftLeftSecurity/scan-action@master
+        env:
+          WORKSPACE: ""
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SCAN_AUTO_BUILD: true
+        with:
+          output: reports
+          
+      - name: Upload scan reports
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: reports
